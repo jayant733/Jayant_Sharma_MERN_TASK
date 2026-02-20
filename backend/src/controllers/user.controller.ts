@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import * as userService from "../services/user.service";
 import { asyncHandler } from "../utils/asyncHandler";
 import { Parser } from "json2csv";
-import { RequestWithId } from "../types/express";
 
 
 import { IApiResponse } from "../types/apiResponse";

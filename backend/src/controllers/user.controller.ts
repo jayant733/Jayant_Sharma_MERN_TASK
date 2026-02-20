@@ -5,11 +5,14 @@ import { Parser } from "json2csv";
 import { RequestWithId } from "../types/express";
 
 
+import { IApiResponse } from "../types/apiResponse";
+import { IUser } from "../interfaces/user.interface";
+
 export const createUser = asyncHandler(
-   async (req: RequestWithId, res: Response) =>{
+  async (req: Request, res: Response<IApiResponse<IUser>>) => {
     const user = await userService.createUser(req.body);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "User created successfully",
       data: user,
@@ -18,7 +21,10 @@ export const createUser = asyncHandler(
 );
 
 export const getUsers = asyncHandler(
-  async (req: RequestWithId, res: Response) => {
+  async (
+    req: Request,
+    res: Response<IApiResponse<IUser[]>>
+  ) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
     const search = req.query.search as string;
@@ -29,7 +35,7 @@ export const getUsers = asyncHandler(
       search
     );
 
-    res.json({
+    return res.json({
       success: true,
       data: users,
       meta: {
@@ -41,9 +47,12 @@ export const getUsers = asyncHandler(
   }
 );
 
+
 export const getUserById = asyncHandler(
- async (req: RequestWithId, res: Response) =>
-{
+  async (
+    req: Request<{ id: string }>,
+    res: Response<IApiResponse<IUser>>
+  ) => {
     const user = await userService.getUserById(req.params.id);
 
     if (!user) {
@@ -53,47 +62,78 @@ export const getUserById = asyncHandler(
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: user,
     });
   }
 );
 
-export const updateUser = asyncHandler(
- async (req: RequestWithId, res: Response) => {
-    const user = await userService.updateUser(req.params.id, req.body);
+export const updateUser = asyncHandler<
+  { id: string },
+  IApiResponse<IUser>
+>(async (req, res) => {
+  const updatedUser = await userService.updateUser(
+    req.params.id,
+    req.body
+  );
 
-    res.json({
-      success: true,
-      message: "User updated successfully",
-      data: user,
+  if (!updatedUser) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found",
     });
   }
-);
 
-export const deleteUser = asyncHandler(
-  async (req: RequestWithId, res: Response) =>
- {
-    await userService.deleteUser(req.params.id);
+  return res.json({
+    success: true,
+    message: "User updated successfully",
+    data: updatedUser,
+  });
+});
 
-    res.json({
-      success: true,
-      message: "User deleted successfully",
+export const deleteUser = asyncHandler<
+  { id: string },
+  IApiResponse<null>
+>(async (req, res) => {
+  const deletedUser = await userService.deleteUser(req.params.id);
+
+  if (!deletedUser) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found",
     });
   }
-);
 
-export const exportUsers = asyncHandler(
-   async (req: RequestWithId, res: Response) =>
-     {
-    const users = await userService.getAllUsers();
+  return res.json({
+    success: true,
+    message: "User deleted successfully",
+    data: null,
+  });
+});
 
-    const parser = new Parser();
-    const csv = parser.parse(users);
 
-    res.header("Content-Type", "text/csv");
-    res.attachment("users.csv");
-    return res.send(csv);
-  }
-);
+
+
+export const exportUsers = asyncHandler(async (req, res) => {
+  const users = await userService.getAllUsers();
+
+  const parser = new Parser({
+    fields: [
+      "firstName",
+      "lastName",
+      "email",
+      "mobile",
+      "gender",
+      "status",
+      "location",
+    ],
+  });
+
+  const csv = parser.parse(users);
+
+  res.header("Content-Type", "text/csv");
+  res.attachment("users.csv");
+
+  return res.send(csv);
+});

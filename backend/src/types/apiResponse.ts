@@ -1,6 +1,6 @@
 export interface IApiResponse<T> {
   success: boolean;
-  message: string;
+  message?: string;  // ✅ Make optional
   data?: T;
   meta?: {
     total?: number;
